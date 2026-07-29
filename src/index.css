@@ -1,0 +1,233 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Cinzel', serif;
+  --font-body: 'Source Sans 3', sans-serif;
+  --color-ink: #050308;
+  --color-ink-soft: #0c0814;
+  --color-violet-deep: #1a0b2e;
+  --color-violet-mid: #2a1545;
+  --color-gold: #c9a227;
+  --color-gold-light: #e8d48b;
+  --color-gold-dim: #8a7020;
+  --color-mist: #9a8fb0;
+  --color-cream: #f2ebe0;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    font-family: var(--font-body);
+    color: var(--color-cream);
+    background-color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 3px;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass-card {
+    background: linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .gold-glow {
+    box-shadow:
+      0 0 20px rgba(201, 162, 39, 0.15),
+      0 0 60px rgba(201, 162, 39, 0.05);
+  }
+
+  .btn-gold {
+    background: linear-gradient(135deg, #a8861f 0%, #c9a227 40%, #e8d48b 55%, #c9a227 70%, #8a7020 100%);
+    background-size: 200% 200%;
+    color: #1a1205;
+    font-weight: 600;
+    transition:
+      background-position 0.6s ease,
+      box-shadow 0.3s ease,
+      transform 0.2s ease;
+    box-shadow:
+      0 0 24px rgba(201, 162, 39, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  .btn-gold:hover:not(:disabled) {
+    background-position: 100% 50%;
+    box-shadow:
+      0 0 32px rgba(201, 162, 39, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+
+  .btn-gold:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .btn-gold:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+/* Atmosphere */
+.fog-layer {
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(ellipse 50% 40% at 20% 30%, rgba(42, 21, 69, 0.55), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 80% 20%, rgba(26, 11, 46, 0.5), transparent 65%),
+    radial-gradient(ellipse 60% 50% at 50% 90%, rgba(10, 5, 20, 0.8), transparent 70%);
+  animation: fog-drift 28s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+.fog-layer--slow {
+  animation-duration: 40s;
+  animation-direction: alternate-reverse;
+  opacity: 0.7;
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 35%, rgba(5, 3, 8, 0.85) 100%);
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 9999px;
+  background: rgba(232, 212, 139, 0.55);
+  box-shadow: 0 0 6px rgba(201, 162, 39, 0.4);
+  animation: particle-float linear infinite;
+  pointer-events: none;
+}
+
+/* Animations */
+@keyframes fog-drift {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2%, 0) scale(1.05);
+  }
+}
+
+@keyframes particle-float {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  85% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-100vh) scale(0.6);
+    opacity: 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.9s ease-out both;
+}
+
+.animate-soft-bounce {
+  animation: soft-bounce 2.2s ease-in-out infinite;
+}
+
+.delay-1 {
+  animation-delay: 0.12s;
+}
+.delay-2 {
+  animation-delay: 0.24s;
+}
+.delay-3 {
+  animation-delay: 0.36s;
+}
+.delay-4 {
+  animation-delay: 0.48s;
+}
+.delay-5 {
+  animation-delay: 0.6s;
+}
+.delay-6 {
+  animation-delay: 0.72s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .fog-layer,
+  .fog-layer--slow,
+  .particle,
+  .animate-fade-up,
+  .animate-soft-bounce {
+    animation: none !important;
+  }
+
+  .animate-fade-up {
+    opacity: 1;
+    transform: none;
+  }
+}
