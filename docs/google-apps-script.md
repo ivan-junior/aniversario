@@ -3,6 +3,8 @@
 Este guia explica como configurar a planilha do Google Sheets e o Apps Script
 para receber as confirmações de presença da landing page.
 
+O código-fonte também está em [`scripts/Code.gs`](../scripts/Code.gs) — copie de lá.
+
 ---
 
 ## 1. Criar a planilha
@@ -28,103 +30,40 @@ para receber as confirmações de presença da landing page.
 
 1. No menu da planilha, vá em **Extensões → Apps Script**.
 2. Apague qualquer código de exemplo que aparecer no editor.
-3. Cole o código completo da seção abaixo.
-4. Clique em **Salvar** (ícone de disquete) e dê um nome ao projeto, por exemplo `RSVP Fantasia`.
+3. Cole o conteúdo completo de [`scripts/Code.gs`](../scripts/Code.gs).
+4. Ajuste `EMAIL_NOTIFICACAO` se quiser outro destinatário.
+5. Clique em **Salvar**.
 
 ---
 
 ## 4. Código completo do Apps Script
 
-```javascript
-/**
- * Web App para receber confirmações de presença da Festa à Fantasia.
- * Implantar como Web App com acesso "Qualquer pessoa".
- */
-function doPost(e) {
-  try {
-    if (!e || !e.postData || !e.postData.contents) {
-      return jsonResponse_({ success: false, error: 'Corpo da requisição ausente.' });
-    }
+O código atualizado está em **[`scripts/Code.gs`](../scripts/Code.gs)**.
 
-    var data = JSON.parse(e.postData.contents);
+Resumo do que ele faz:
 
-    var nome = (data.nome || '').toString().trim();
-    var presenca = data.presenca === true || data.presenca === 'true';
-    var quantidadePessoas = Number(data.quantidadePessoas);
-    var observacoes = (data.observacoes || '').toString().trim();
-    var enviadoEm = data.enviadoEm ? new Date(data.enviadoEm) : new Date();
-
-    if (!nome) {
-      return jsonResponse_({ success: false, error: 'Campo "nome" é obrigatório.' });
-    }
-
-    if (typeof data.presenca !== 'boolean' && data.presenca !== 'true' && data.presenca !== 'false') {
-      return jsonResponse_({ success: false, error: 'Campo "presenca" inválido.' });
-    }
-
-    if (!presenca) {
-      quantidadePessoas = 0;
-    } else if (!Number.isFinite(quantidadePessoas) || quantidadePessoas < 1) {
-      quantidadePessoas = 1;
-    }
-
-    var spreadsheet = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = spreadsheet.getSheetByName('Confirmacoes');
-
-    if (!sheet) {
-      sheet = spreadsheet.insertSheet('Confirmacoes');
-      sheet.appendRow([
-        'Data/Hora',
-        'Nome',
-        'Presença',
-        'Quantidade de Pessoas',
-        'Observações',
-      ]);
-    }
-
-    var dataHoraFormatada = Utilities.formatDate(
-      enviadoEm instanceof Date && !isNaN(enviadoEm.getTime()) ? enviadoEm : new Date(),
-      'America/Sao_Paulo',
-      'dd/MM/yyyy HH:mm'
-    );
-
-    sheet.appendRow([
-      dataHoraFormatada,
-      nome,
-      presenca ? 'Sim' : 'Não',
-      quantidadePessoas,
-      observacoes,
-    ]);
-
-    return jsonResponse_({ success: true });
-  } catch (error) {
-    return jsonResponse_({
-      success: false,
-      error: error && error.message ? error.message : 'Erro interno',
-    });
-  }
-}
-
-/**
- * Resposta opcional para testes no navegador (GET).
- */
-function doGet() {
-  return jsonResponse_({
-    ok: true,
-    message: 'Web App RSVP ativo. Use POST para enviar confirmações.',
-  });
-}
-
-function jsonResponse_(payload) {
-  return ContentService
-    .createTextOutput(JSON.stringify(payload))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-```
+1. Recebe o POST do frontend
+2. Valida nome e presença
+3. Grava uma linha na aba `Confirmacoes`
+4. Envia e-mail de notificação via `MailApp` para `EMAIL_NOTIFICACAO`
+5. Retorna `{ success: true }`
 
 ---
 
-## 5. Implantar como Web App
+## 5. Autorizar o envio de e-mail (obrigatório)
+
+O e-mail **não funciona** só com colar o código. É preciso autorizar o Gmail/Mail:
+
+1. No editor do Apps Script, selecione a função **`autorizarEmail`** no seletor de funções (ao lado do botão Executar).
+2. Clique em **Executar**.
+3. O Google pedirá permissão — clique em **Revisar permissões** → escolha sua conta → **Avançado** → **Ir para o projeto (não seguro)** → **Permitir**.
+4. Confira se chegou um e-mail de teste em `EMAIL_NOTIFICACAO`.
+
+Sem esse passo, `doPost` grava na planilha, mas o envio de e-mail falha (e a execução ainda pode aparecer como "Concluído" se o erro for engolido).
+
+---
+
+## 6. Implantar como Web App
 
 1. No editor do Apps Script, clique em **Implantar → Nova implantação**.
 2. Ao lado de **Selecionar tipo**, clique no ícone de engrenagem e escolha **App da Web**.
@@ -133,19 +72,25 @@ function jsonResponse_(payload) {
    - **Executar como:** `Eu` (sua conta Google)
    - **Quem tem acesso:** `Qualquer pessoa`
 4. Clique em **Implantar**.
-5. Autorize o aplicativo quando o Google solicitar (revise as permissões e avance).
-6. Copie a **URL da implantação** (termina algo como `/exec`).
+5. Autorize se o Google pedir de novo.
+6. Copie a **URL da implantação** (`/exec`).
 
 > Importante: sempre use a URL da implantação (`/exec`), não a URL de teste (`/dev`).
 
 ---
 
-## 6. Configurar o frontend
+## 7. Configurar o frontend
 
 1. Na raiz do projeto, copie `.env.example` para `.env`:
 
 ```bash
 cp .env.example .env
+```
+
+No PowerShell:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
 2. Cole a URL no `.env`:
@@ -159,7 +104,7 @@ VITE_SITE_URL=https://seu-dominio.vercel.app
 
 ---
 
-## 7. Atualizar o script depois de mudanças
+## 8. Atualizar o script depois de mudanças
 
 Se você alterar o código do Apps Script:
 
@@ -171,9 +116,11 @@ Se você alterar o código do Apps Script:
 
 A URL normalmente permanece a mesma.
 
+**Sem criar uma nova versão, o Web App continua rodando o código antigo** — por isso o histórico pode mostrar "Concluído" sem enviar e-mail.
+
 ---
 
-## 8. Teste rápido
+## 9. Teste rápido
 
 Você pode testar com `curl` (PowerShell: `Invoke-RestMethod`):
 
@@ -183,17 +130,43 @@ curl -X POST "SUA_URL_AQUI" \
   -d '{"nome":"Teste","presenca":true,"quantidadePessoas":2,"observacoes":"teste","enviadoEm":"2026-07-29T20:00:00.000Z"}'
 ```
 
-Verifique se uma nova linha apareceu na aba **Confirmacoes**.
+Verifique:
+
+1. Nova linha na aba **Confirmacoes**
+2. E-mail na caixa de entrada (e no spam) de `EMAIL_NOTIFICACAO`
+
+---
+
+## Por que o e-mail não chega mesmo com execução "Concluído"?
+
+Causas mais comuns:
+
+1. **Código antigo ainda implantado** — salvou no editor, mas não criou **Nova versão** na implantação.
+2. **Permissão do Gmail/Mail não autorizada** — rode a função `autorizarEmail` manualmente uma vez (veja abaixo).
+3. **E-mail na pasta de spam**
+4. **`EMAIL_NOTIFICACAO` errado** no script implantado
+
+### Autorizar e-mail manualmente
+
+No Apps Script, adicione e execute **uma vez** esta função:
+
+```javascript
+function autorizarEmail() {
+  MailApp.sendEmail({
+    to: EMAIL_NOTIFICACAO,
+    subject: 'Teste RSVP — autorização OK',
+    body: 'Se você recebeu este e-mail, a autorização do MailApp está funcionando.',
+  });
+}
+```
+
+(Ela também está no final de [`scripts/Code.gs`](../scripts/Code.gs).)
 
 ---
 
 ## Observações técnicas
 
 - O frontend envia `Content-Type: text/plain` e usa `mode: 'no-cors'`.
-  Web Apps do Google Apps Script **não** devolvem o cabeçalho
-  `Access-Control-Allow-Origin`, então o navegador bloqueia a leitura da
-  resposta em modo CORS normal (mesmo com status 200). Com `no-cors`, o
-  POST chega ao script e a planilha é atualizada; a resposta fica opaca
-  e o frontend trata o envio como sucesso se a requisição não falhar na rede.
 - O campo `enviadoEm` chega em ISO; o script formata para `dd/MM/yyyy HH:mm` no fuso `America/Sao_Paulo`.
 - Quem marca **Não** grava Quantidade de Pessoas = `0`.
+- Após gravar na planilha, o script envia e-mail via `MailApp`. Se o e-mail falhar por autorização, a linha na planilha já terá sido salva.
