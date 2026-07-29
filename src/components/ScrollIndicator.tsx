@@ -13,12 +13,12 @@ export function ScrollIndicator({ targetId }: ScrollIndicatorProps) {
     <button
       type="button"
       onClick={scrollToForm}
-      className="group mx-auto flex flex-col items-center gap-2 border-0 bg-transparent p-2 text-mist transition-colors hover:text-gold-light"
+      className="group mx-auto flex flex-col items-center gap-2 border-0 bg-transparent p-2 text-mist transition-colors hover:text-gold-light cursor-pointer"
       aria-label="Ir para confirmação de presença"
     >
       <span className="text-sm tracking-wide">Confirme sua presença</span>
       <ChevronDown
-        className="animate-soft-bounce h-6 w-6 text-gold/80 transition-colors group-hover:text-gold"
+        className="animate-soft-bounce h-6 w-6 text-gold/80 transition-colors group-hover:text-gold cursor-pointer"
         aria-hidden="true"
       />
     </button>

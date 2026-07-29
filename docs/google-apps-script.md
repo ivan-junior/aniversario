@@ -189,6 +189,11 @@ Verifique se uma nova linha apareceu na aba **Confirmacoes**.
 
 ## Observações técnicas
 
-- O frontend envia `Content-Type: text/plain` para evitar preflight CORS.
+- O frontend envia `Content-Type: text/plain` e usa `mode: 'no-cors'`.
+  Web Apps do Google Apps Script **não** devolvem o cabeçalho
+  `Access-Control-Allow-Origin`, então o navegador bloqueia a leitura da
+  resposta em modo CORS normal (mesmo com status 200). Com `no-cors`, o
+  POST chega ao script e a planilha é atualizada; a resposta fica opaca
+  e o frontend trata o envio como sucesso se a requisição não falhar na rede.
 - O campo `enviadoEm` chega em ISO; o script formata para `dd/MM/yyyy HH:mm` no fuso `America/Sao_Paulo`.
 - Quem marca **Não** grava Quantidade de Pessoas = `0`.

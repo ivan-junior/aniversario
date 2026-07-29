@@ -43,7 +43,7 @@ export function Hero() {
           </a>
         </div>
 
-        <div className="animate-fade-up delay-6 mt-12 sm:mt-14">
+        <div className="animate-fade-up delay-6 mt-12 sm:mt-14 cursor-pointer">
           <ScrollIndicator targetId="confirmacao" />
         </div>
       </div>
