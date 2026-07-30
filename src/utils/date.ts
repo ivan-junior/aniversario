@@ -1,4 +1,4 @@
-export const EVENT_DATE = new Date('2026-08-29T20:00:00-03:00')
+export const EVENT_DATE = new Date('2026-08-29T19:30:00-03:00')
 
 export type TimeLeft = {
   days: number
