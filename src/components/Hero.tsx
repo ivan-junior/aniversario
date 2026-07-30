@@ -28,7 +28,7 @@ export function Hero() {
 
         <div className="animate-fade-up delay-6 mt-8 space-y-1 text-sm text-mist/80 sm:mt-10 sm:text-base">
           <p className="font-display tracking-[0.15em] text-cream/90 uppercase">
-            29 de Agosto de 2026 • 20H
+            29 de Agosto de 2026 • 19:30
           </p>
           <p className="mt-3">Chácara Aconchêgo</p>
           <p>Rua E, 185 — Recreio Internacional</p>
