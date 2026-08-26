@@ -474,3 +474,81 @@ grant select on public.votes to authenticated;
 
 -- Sem grant de insert/update/delete em costumes/votes para roles de cliente.
 -- Sem grant em admin_users.
+
+-- ---------------------------------------------------------------------------
+-- RPC: admin_clear_party_data
+-- Apaga votes + costumes; preserva party_config e admin_users.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.admin_clear_party_data()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not public.is_admin() then
+    raise exception 'not_admin'
+      using errcode = 'P0001';
+  end if;
+
+  -- WHERE true: necessário com a extensão safeupdate (Supabase)
+  delete from public.votes where true;
+  delete from public.costumes where true;
+
+  return jsonb_build_object('success', true);
+end;
+$$;
+
+revoke all on function public.admin_clear_party_data() from public;
+grant execute on function public.admin_clear_party_data() to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- RPC: admin_delete_costume
+-- Remove uma fantasia; votos recebidos saem via ON DELETE CASCADE.
+-- Não remove votos que o device_id do participante fez em outras fantasias.
+-- ---------------------------------------------------------------------------
+
+create or replace function public.admin_delete_costume(p_costume_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_deleted_votes integer;
+begin
+  if not public.is_admin() then
+    raise exception 'not_admin'
+      using errcode = 'P0001';
+  end if;
+
+  if p_costume_id is null then
+    raise exception 'invalid_costume_id'
+      using errcode = 'P0001';
+  end if;
+
+  if not exists (
+    select 1 from public.costumes where id = p_costume_id
+  ) then
+    raise exception 'costume_not_found'
+      using errcode = 'P0001';
+  end if;
+
+  select count(*)::integer
+  into v_deleted_votes
+  from public.votes
+  where costume_id = p_costume_id;
+
+  delete from public.costumes
+  where id = p_costume_id;
+
+  return jsonb_build_object(
+    'success', true,
+    'deletedVotes', v_deleted_votes
+  );
+end;
+$$;
+
+revoke all on function public.admin_delete_costume(uuid) from public;
+grant execute on function public.admin_delete_costume(uuid) to authenticated;

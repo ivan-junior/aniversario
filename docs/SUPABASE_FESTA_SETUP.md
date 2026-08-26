@@ -172,21 +172,46 @@ https://aniversario.ivanjunior.dev/admin
 3. Você verá o painel com:
    - Abrir / fechar cadastro
    - Abrir / fechar votação
-   - Ranking (atualiza a cada ~10s)
+   - Ranking (atualiza a cada ~10s), com remoção individual de participante
+   - Zona de manutenção (limpar fantasias e votos)
    - Botão **Sair**
 
 ---
 
 ## 8. Resetando dados de teste
 
-No **SQL Editor**, para limpar fantasias e votos sem apagar config/admin:
+### Pelo painel `/admin` (recomendado)
+
+> Se o projeto Supabase já existia antes desta feature, execute no **SQL Editor** o bloco das RPCs `admin_clear_party_data` e `admin_delete_costume` no final de [`docs/supabase-festa-setup.sql`](./supabase-festa-setup.sql) (`create or replace` + grants).
+
+Na **Zona de manutenção**, use **Limpar fantasias e votos**.
+
+- Confirmação exige digitar `LIMPAR`.
+- Remove todas as fantasias e todos os votos.
+- **Não** altera `party_config` (cadastro/votação continuam como estavam).
+- **Não** apaga `admin_users` nem usuários do Auth.
+- Equivale à RPC `admin_clear_party_data`.
+
+Para remover **um** participante do ranking, use o ícone de lixeira na linha. Isso chama `admin_delete_costume` e apaga a fantasia + os votos **recebidos** por ela (via `ON DELETE CASCADE` em `votes.costume_id`). Votos que aquele `device_id` tenha feito em outras fantasias **permanecem**.
+
+### Pelo SQL Editor (manual)
+
+Para limpar fantasias e votos sem apagar config/admin:
 
 ```sql
-delete from public.votes;
-delete from public.costumes;
+-- WHERE true: necessário com a extensão safeupdate (Supabase)
+delete from public.votes where true;
+delete from public.costumes where true;
 ```
 
-Para reabrir cadastro e fechar votação (estado inicial típico):
+Ou, se as RPCs admin já estiverem aplicadas e você estiver autenticado como admin no client:
+
+```sql
+-- preferível via app; no SQL Editor use os DELETEs acima
+select public.admin_clear_party_data();
+```
+
+Para reabrir cadastro e fechar votação (estado inicial típico) — **passo separado**, não faz parte da limpeza:
 
 ```sql
 update public.party_config
@@ -199,6 +224,8 @@ where id = 1;
 ```
 
 **Não** apague `party_config` nem `admin_users` a menos que você saiba o que está fazendo.
+
+**CASCADE:** `votes.costume_id` referencia `costumes(id) on delete cascade`. Apagar uma fantasia remove só os votos com aquele `costume_id`, nunca votos de outras fantasias.
 
 ---
 
@@ -248,6 +275,8 @@ Depois recarregue a página. Um novo `deviceId` será gerado.
 [ ] Convidado não consegue consultar votes
 [ ] Abrir/fechar cadastro funciona no /admin
 [ ] Abrir/fechar votação funciona no /admin
+[ ] Limpar fantasias e votos no /admin zera totais e preserva party_config
+[ ] Remover participante no ranking apaga só votos recebidos
 [ ] Botão Sair encerra a sessão
 ```
 
@@ -269,6 +298,17 @@ await supabase.from('votes').delete().neq('id', '00000000-0000-0000-0000-0000000
 ```
 
 ```js
+await supabase.rpc('admin_clear_party_data')
+// erro: not_admin / permission denied (sem sessão admin)
+```
+
+```js
+await supabase.rpc('admin_delete_costume', {
+  p_costume_id: '00000000-0000-0000-0000-000000000000',
+})
+```
+
+```js
 await supabase
   .from('party_config')
   .update({ voting_open: true })
@@ -285,6 +325,8 @@ await supabase
 ### Deve funcionar (admin autenticado + em `admin_users`)
 
 - `rpc('get_costume_ranking')`
+- `rpc('admin_clear_party_data')`
+- `rpc('admin_delete_costume', { p_costume_id })`
 - select em `votes` / `costumes`
 - update em `party_config`
 
@@ -313,13 +355,15 @@ Chame `cast_vote` duas vezes com o mesmo `device_id`. A segunda deve falhar (`al
 | `cast_vote` | convidado | registra voto (1 por device; sem auto-voto) |
 | `list_costumes` | convidado | lista fantasias com `isMine` (sem expor device_ids alheios) |
 | `get_costume_ranking` | admin | ranking secreto |
+| `admin_clear_party_data` | admin | apaga todas as fantasias e votos; preserva `party_config` e `admin_users` |
+| `admin_delete_costume` | admin | apaga uma fantasia e os votos recebidos (CASCADE); preserva votos feitos em outras |
 | `is_admin` | autenticado | whitelist `admin_users` |
 
 | Tabela | Convidado | Admin |
 |--------|-----------|-------|
 | `party_config` | SELECT | SELECT + UPDATE |
-| `costumes` | via RPC | SELECT |
-| `votes` | via RPC (insert) | SELECT |
+| `costumes` | via RPC | SELECT (delete só via RPC admin) |
+| `votes` | via RPC (insert) | SELECT (delete só via RPC admin / CASCADE) |
 | `admin_users` | sem acesso direto | via `is_admin()` |
 
 ---

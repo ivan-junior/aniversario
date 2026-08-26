@@ -40,6 +40,15 @@ export type RankingResult = {
   status: PartyStatus
 }
 
+export type ClearPartyDataResult = {
+  success: true
+}
+
+export type DeleteCostumeResult = {
+  success: true
+  deletedVotes: number
+}
+
 export type ApiSuccess<T> = {
   success: true
   data: T

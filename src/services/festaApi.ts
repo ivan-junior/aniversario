@@ -1,5 +1,7 @@
 import type {
+  ClearPartyDataResult,
   CostumesResult,
+  DeleteCostumeResult,
   PartyStatus,
   RankingResult,
   RegisterCostumeResult,
@@ -196,6 +198,28 @@ export async function getRanking(): Promise<RankingResult> {
   }
 }
 
+export async function clearPartyData(): Promise<ClearPartyDataResult> {
+  try {
+    const { data, error } = await getSupabase().rpc('admin_clear_party_data')
+    return assertData(data, error) as ClearPartyDataResult
+  } catch (error) {
+    throw translateError(error)
+  }
+}
+
+export async function deleteCostumeAsAdmin(
+  costumeId: string,
+): Promise<DeleteCostumeResult> {
+  try {
+    const { data, error } = await getSupabase().rpc('admin_delete_costume', {
+      p_costume_id: costumeId,
+    })
+    return assertData(data, error) as DeleteCostumeResult
+  } catch (error) {
+    throw translateError(error)
+  }
+}
+
 export async function setRegistrationStatus(
   open: boolean,
 ): Promise<PartyStatus> {
@@ -305,7 +329,9 @@ export async function getAdminSession(): Promise<{
 }
 
 export type {
+  ClearPartyDataResult,
   Costume,
+  DeleteCostumeResult,
   PartyStatus,
   RankingResult,
   RegisterCostumeResult,
