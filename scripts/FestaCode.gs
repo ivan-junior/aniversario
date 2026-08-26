@@ -91,65 +91,82 @@ function ensureConfigDefault_(sheet, key, value) {
 // HTTP entry points
 // ---------------------------------------------------------------------------
 
+/**
+ * Todas as ações devem ir por GET (query params).
+ * POST do Apps Script costuma redirecionar e o browser reenvia como GET
+ * sem o body — gerando "Ação GET inválida" e falhas intermitentes.
+ */
 function doGet(e) {
   try {
-    var params = (e && e.parameter) || {};
-    var action = String(params.action || '').trim();
-
-    if (action === 'getStatus') {
-      return jsonResponse_(ok_({ data: getStatusData_() }));
-    }
-
-    if (action === 'getCostumes') {
-      return jsonResponse_(ok_({ data: getCostumesData_(params.deviceId) }));
-    }
-
-    return jsonResponse_(fail_('Ação GET inválida.'));
+    return handleRequest_((e && e.parameter) || {});
   } catch (error) {
     return jsonResponse_(fail_(friendlyError_(error)));
   }
 }
 
+/** Mantido por compatibilidade; o frontend usa apenas GET. */
 function doPost(e) {
   try {
-    if (!e || !e.postData || !e.postData.contents) {
-      return jsonResponse_(fail_('Corpo da requisição ausente.'));
+    var body = {};
+    if (e && e.postData && e.postData.contents) {
+      body = JSON.parse(e.postData.contents);
     }
-
-    var body = JSON.parse(e.postData.contents);
-    var action = String(body.action || '').trim();
-
-    if (action === 'registerCostume') {
-      return jsonResponse_(ok_({ data: registerCostume_(body) }));
-    }
-
-    if (action === 'vote') {
-      return jsonResponse_(ok_({ data: vote_(body) }));
-    }
-
-    if (action === 'getRanking') {
-      assertAdmin_(body.adminSecret);
-      return jsonResponse_(ok_({ data: getRankingData_() }));
-    }
-
-    if (action === 'setRegistrationStatus') {
-      assertAdmin_(body.adminSecret);
-      return jsonResponse_(
-        ok_({ data: setRegistrationStatus_(body.open === true || body.open === 'true') }),
-      );
-    }
-
-    if (action === 'setVotingStatus') {
-      assertAdmin_(body.adminSecret);
-      return jsonResponse_(
-        ok_({ data: setVotingStatus_(body.open === true || body.open === 'true') }),
-      );
-    }
-
-    return jsonResponse_(fail_('Ação POST inválida.'));
+    return handleRequest_(body);
   } catch (error) {
     return jsonResponse_(fail_(friendlyError_(error)));
   }
+}
+
+function handleRequest_(params) {
+  var action = String((params && params.action) || '').trim();
+
+  // Redirect residual sem action — não assusta o frontend
+  if (!action) {
+    return jsonResponse_(ok_({ data: { ok: true } }));
+  }
+
+  if (action === 'getStatus') {
+    return jsonResponse_(ok_({ data: getStatusData_() }));
+  }
+
+  if (action === 'getCostumes') {
+    return jsonResponse_(ok_({ data: getCostumesData_(params.deviceId) }));
+  }
+
+  if (action === 'registerCostume') {
+    return jsonResponse_(ok_({ data: registerCostume_(params) }));
+  }
+
+  if (action === 'vote') {
+    return jsonResponse_(ok_({ data: vote_(params) }));
+  }
+
+  if (action === 'getRanking') {
+    assertAdmin_(params.adminSecret);
+    return jsonResponse_(ok_({ data: getRankingData_() }));
+  }
+
+  if (action === 'setRegistrationStatus') {
+    assertAdmin_(params.adminSecret);
+    return jsonResponse_(
+      ok_({
+        data: setRegistrationStatus_(
+          params.open === true || params.open === 'true',
+        ),
+      }),
+    );
+  }
+
+  if (action === 'setVotingStatus') {
+    assertAdmin_(params.adminSecret);
+    return jsonResponse_(
+      ok_({
+        data: setVotingStatus_(params.open === true || params.open === 'true'),
+      }),
+    );
+  }
+
+  return jsonResponse_(fail_('Ação inválida.'));
 }
 
 // ---------------------------------------------------------------------------

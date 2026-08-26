@@ -11,6 +11,10 @@ import { getDeviceId } from '../utils/deviceId'
 const FRIENDLY_NETWORK_ERROR =
   'Ops! Não conseguimos registrar agora.\n\nTente novamente em alguns segundos.'
 
+/** Cache curto de status — o Apps Script é lento; evita hits repetidos. */
+const STATUS_CACHE_MS = 20_000
+let statusCache: { at: number; data: PartyStatus } | null = null
+
 function getApiUrl(): string {
   const url = import.meta.env.VITE_APPS_SCRIPT_URL
 
@@ -25,6 +29,10 @@ function getApiUrl(): string {
 
 function getAdminSecret(): string {
   return import.meta.env.VITE_ADMIN_PASSWORD ?? ''
+}
+
+function invalidateStatusCache(): void {
+  statusCache = null
 }
 
 async function parseResponse<T>(response: Response): Promise<T> {
@@ -43,52 +51,26 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload.data
 }
 
-async function getAction<T>(
+/**
+ * Apps Script Web App: POST costuma virar GET no redirect e perde o body
+ * ("Ação GET inválida"). Por isso todas as ações usam GET com query params.
+ */
+async function requestAction<T>(
   action: string,
-  params: Record<string, string> = {},
+  params: Record<string, string | boolean | number | undefined | null> = {},
 ): Promise<T> {
   const url = new URL(getApiUrl())
   url.searchParams.set('action', action)
 
   for (const [key, value] of Object.entries(params)) {
-    if (value) url.searchParams.set(key, value)
+    if (value === undefined || value === null || value === '') continue
+    url.searchParams.set(key, String(value))
   }
 
   try {
     const response = await fetch(url.toString(), {
       method: 'GET',
       redirect: 'follow',
-    })
-
-    return await parseResponse<T>(response)
-  } catch (error) {
-    if (error instanceof Error && error.message !== FRIENDLY_NETWORK_ERROR) {
-      // mensagens de negócio vindas da API
-      if (
-        !error.message.includes('VITE_APPS_SCRIPT_URL') &&
-        error.message !== 'Failed to fetch'
-      ) {
-        throw error
-      }
-    }
-
-    console.error('[festaApi]', error)
-    throw new Error(FRIENDLY_NETWORK_ERROR)
-  }
-}
-
-async function postAction<T>(
-  action: string,
-  body: Record<string, unknown>,
-): Promise<T> {
-  try {
-    const response = await fetch(getApiUrl(), {
-      method: 'POST',
-      redirect: 'follow',
-      headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
-      },
-      body: JSON.stringify({ action, ...body }),
     })
 
     return await parseResponse<T>(response)
@@ -108,12 +90,24 @@ async function postAction<T>(
   }
 }
 
-export async function getPartyStatus(): Promise<PartyStatus> {
-  return getAction<PartyStatus>('getStatus')
+export async function getPartyStatus(
+  options: { force?: boolean } = {},
+): Promise<PartyStatus> {
+  if (
+    !options.force &&
+    statusCache &&
+    Date.now() - statusCache.at < STATUS_CACHE_MS
+  ) {
+    return statusCache.data
+  }
+
+  const data = await requestAction<PartyStatus>('getStatus')
+  statusCache = { at: Date.now(), data }
+  return data
 }
 
 export async function getCostumes(): Promise<CostumesResult> {
-  return getAction<CostumesResult>('getCostumes', {
+  return requestAction<CostumesResult>('getCostumes', {
     deviceId: getDeviceId(),
   })
 }
@@ -122,7 +116,8 @@ export async function registerCostume(
   name: string,
   costume: string,
 ): Promise<RegisterCostumeResult> {
-  return postAction<RegisterCostumeResult>('registerCostume', {
+  invalidateStatusCache()
+  return requestAction<RegisterCostumeResult>('registerCostume', {
     deviceId: getDeviceId(),
     name,
     costume,
@@ -130,32 +125,40 @@ export async function registerCostume(
 }
 
 export async function vote(fantasiaId: string): Promise<{ voted: true }> {
-  return postAction<{ voted: true }>('vote', {
+  return requestAction<{ voted: true }>('vote', {
     deviceId: getDeviceId(),
     fantasiaId,
   })
 }
 
 export async function getRanking(): Promise<RankingResult> {
-  return postAction<RankingResult>('getRanking', {
+  const data = await requestAction<RankingResult>('getRanking', {
     adminSecret: getAdminSecret(),
   })
+  statusCache = { at: Date.now(), data: data.status }
+  return data
 }
 
 export async function setRegistrationStatus(
   open: boolean,
 ): Promise<PartyStatus> {
-  return postAction<PartyStatus>('setRegistrationStatus', {
+  invalidateStatusCache()
+  const data = await requestAction<PartyStatus>('setRegistrationStatus', {
     adminSecret: getAdminSecret(),
     open,
   })
+  statusCache = { at: Date.now(), data }
+  return data
 }
 
 export async function setVotingStatus(open: boolean): Promise<PartyStatus> {
-  return postAction<PartyStatus>('setVotingStatus', {
+  invalidateStatusCache()
+  const data = await requestAction<PartyStatus>('setVotingStatus', {
     adminSecret: getAdminSecret(),
     open,
   })
+  statusCache = { at: Date.now(), data }
+  return data
 }
 
 export type { Costume, PartyStatus, RankingResult, RegisterCostumeResult }

@@ -119,21 +119,20 @@ Sem nova versão, o Web App continua no código antigo.
 
 ## 8. Ações da API
 
+**Importante:** todas as ações usam **GET** com query params. POST no Apps Script
+costuma redirecionar e o browser reenvia como GET sem o body (erro intermitente
+`Ação GET inválida`).
+
 ### GET
 
 | action | params | descrição |
 |--------|--------|-----------|
 | `getStatus` | — | status de cadastro/votação |
 | `getCostumes` | `deviceId` | lista + `myCostumeId` + `hasVoted` |
-
-### POST (body JSON, `Content-Type: text/plain`)
-
-| action | campos | descrição |
-|--------|--------|-----------|
 | `registerCostume` | `deviceId`, `name`, `costume` | cadastra fantasia |
 | `vote` | `deviceId`, `fantasiaId` | registra voto |
 | `getRanking` | `adminSecret` | ranking agregado |
-| `setRegistrationStatus` | `adminSecret`, `open` | abre/fecha cadastro |
+| `setRegistrationStatus` | `adminSecret`, `open` | abre/fecha cadastro (`true`/`false`) |
 | `setVotingStatus` | `adminSecret`, `open` | abre/fecha votação |
 
 Respostas:
@@ -205,5 +204,7 @@ Não é necessário gerar QR no sistema.
 - `LockService` protege cadastro, voto e mudanças de Config contra concorrência.
 - Ranking = agregação das linhas da aba `Votos` (sem contador na fantasia).
 - O frontend identifica o navegador com `localStorage.festa_device_id` (`crypto.randomUUID()`).
-- CORS: Apps Script Web App com acesso “Qualquer pessoa”; o client usa GET para leitura e POST `text/plain` para gravação (evita preflight).
+- CORS: Apps Script Web App com acesso “Qualquer pessoa”; o client usa **apenas GET**
+  com query params (POST no Web App quebra com redirect → “Ação GET inválida”).
+- O painel `/admin` atualiza o ranking a cada ~20s, só com a aba visível.
 - A senha no frontend (`VITE_*`) é obscuridade para festa; a validação real das operações admin está no `ADMIN_SECRET` do Apps Script.
