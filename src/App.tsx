@@ -1,32 +1,22 @@
-import { AtmosphericBackground } from './components/AtmosphericBackground'
-import { Hero } from './components/Hero'
-import { RSVPForm } from './components/RSVPForm'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { AdminPage } from './pages/AdminPage'
+import { FantasiaPage } from './pages/FantasiaPage'
+import { FestaPage } from './pages/FestaPage'
+import { HomePage } from './pages/HomePage'
+import { VotacaoPage } from './pages/VotacaoPage'
 
 function App() {
-  const year = new Date().getFullYear()
-
   return (
-    <div className="relative min-h-dvh overflow-x-hidden">
-      <AtmosphericBackground />
-      <main className="relative z-10">
-        <Hero />
-        <section
-          id="confirmacao"
-          className="relative px-5 py-20 sm:px-8 sm:py-28"
-          aria-labelledby="rsvp-heading"
-        >
-          <h2 id="rsvp-heading" className="sr-only">
-            Confirmação de presença
-          </h2>
-          <RSVPForm />
-        </section>
-      </main>
-      <footer className="relative z-10 px-5 pb-10 pt-4 text-center sm:px-8">
-        <p className="text-xs tracking-wide text-mist/50 sm:text-sm">
-          © {year} Ivan Junior. Todos os direitos reservados.
-        </p>
-      </footer>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/festa" element={<FestaPage />} />
+        <Route path="/fantasia" element={<FantasiaPage />} />
+        <Route path="/votar" element={<VotacaoPage />} />
+        <Route path="/admin" element={<AdminPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
 

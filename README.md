@@ -1,14 +1,16 @@
-# Festa à Fantasia — Confirmação de Presença
+# Festa à Fantasia — Ivan faz 33
 
-Landing page responsiva (mobile-first) para confirmação de presença em uma festa à fantasia. O convidado abre o link, vê o countdown e confirma presença — a resposta é salva em uma planilha do Google Sheets.
+Landing page responsiva (mobile-first) para confirmação de presença, mais o hub da festa com cadastro de fantasias e votação da melhor fantasia.
 
 ## Stack
 
 - React + TypeScript
 - Vite
+- React Router
 - Tailwind CSS
 - Lucide React
 - Google Apps Script (Web App) → Google Sheets
+- Vercel (frontend)
 
 ## Como instalar
 
@@ -33,14 +35,18 @@ Copy-Item .env.example .env
 2. Preencha as variáveis:
 
 ```env
-VITE_GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/SEU_ID/exec
-VITE_SITE_URL=https://seu-dominio.vercel.app
+VITE_GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/RSVP_ID/exec
+VITE_SITE_URL=https://aniversario.ivanjunior.dev
+VITE_APPS_SCRIPT_URL=https://script.google.com/macros/s/FESTA_ID/exec
+VITE_ADMIN_PASSWORD=sua-senha-forte
 ```
 
 | Variável | Uso |
 |----------|-----|
-| `VITE_GOOGLE_SCRIPT_URL` | URL da implantação do Google Apps Script |
-| `VITE_SITE_URL` | URL absoluta do site em produção (Open Graph) |
+| `VITE_GOOGLE_SCRIPT_URL` | Web App do RSVP (confirmação de presença) |
+| `VITE_SITE_URL` | URL absoluta do site (Open Graph) |
+| `VITE_APPS_SCRIPT_URL` | Web App do concurso de fantasias |
+| `VITE_ADMIN_PASSWORD` | Senha do `/admin` (igual ao `ADMIN_SECRET` no Apps Script) |
 
 ## Como rodar
 
@@ -49,6 +55,16 @@ npm run dev
 ```
 
 Abra o endereço indicado no terminal (geralmente `http://localhost:5173`).
+
+Rotas úteis:
+
+| Rota | Função |
+|------|--------|
+| `/` | Landing + RSVP |
+| `/festa` | Hub do concurso (QR Code) |
+| `/fantasia` | Cadastro de fantasia |
+| `/votar` | Votação |
+| `/admin` | Painel + ranking |
 
 ## Scripts úteis
 
@@ -60,16 +76,21 @@ npm run lint     # oxlint
 
 ## Google Sheets / Apps Script
 
-Siga o passo a passo completo em:
+### RSVP (confirmação de presença)
 
-**[docs/google-apps-script.md](docs/google-apps-script.md)**
+**[docs/google-apps-script.md](docs/google-apps-script.md)** — script em `scripts/Code.gs`
 
-Resumo:
+### Concurso de fantasias (cadastro + votação)
 
-1. Crie a planilha e a aba `Confirmacoes` com os cabeçalhos.
-2. Cole o script `doPost` no Apps Script.
-3. Implante como Web App com acesso **Qualquer pessoa**.
-4. Cole a URL `/exec` em `VITE_GOOGLE_SCRIPT_URL`.
+**[docs/festa-apps-script.md](docs/festa-apps-script.md)** — script em `scripts/FestaCode.gs`
+
+Resumo do concurso:
+
+1. Crie uma planilha nova e cole `scripts/FestaCode.gs`.
+2. Execute `setupSpreadsheet()`.
+3. Configure a Script Property `ADMIN_SECRET`.
+4. Implante como Web App (**Qualquer pessoa**) e copie a URL `/exec`.
+5. Preencha `VITE_APPS_SCRIPT_URL` e `VITE_ADMIN_PASSWORD`.
 
 ## Deploy na Vercel
 
@@ -78,10 +99,20 @@ Resumo:
 3. Framework preset: **Vite** (detectado automaticamente).
 4. Em **Environment Variables**, adicione:
    - `VITE_GOOGLE_SCRIPT_URL`
-   - `VITE_SITE_URL` (ex.: `https://festa-fantasia.vercel.app`)
+   - `VITE_SITE_URL` (ex.: `https://aniversario.ivanjunior.dev`)
+   - `VITE_APPS_SCRIPT_URL`
+   - `VITE_ADMIN_PASSWORD`
 5. Faça o deploy.
 
-Após o primeiro deploy, atualize `VITE_SITE_URL` com a URL final (domínio da Vercel ou domínio customizado) e faça um **redeploy** para regenerar os metadados Open Graph com URLs absolutas corretas.
+O arquivo `vercel.json` já redireciona rotas SPA para `index.html`.
+
+## QR Code da festa
+
+Aponte o QR Code físico para:
+
+```text
+https://aniversario.ivanjunior.dev/festa
+```
 
 ## Open Graph / Preview do WhatsApp
 
@@ -105,54 +136,36 @@ Mantenha o mesmo nome de arquivo (ou atualize as tags `og:image` / `twitter:imag
 
 ### 3. Configurar `VITE_SITE_URL`
 
-No build, o Vite substitui `%VITE_SITE_URL%` no HTML. Em produção:
-
 ```env
-VITE_SITE_URL=https://meu-dominio.com
-```
-
-Isso gera URLs absolutas como:
-
-```
-https://meu-dominio.com/og-image.jpg
+VITE_SITE_URL=https://aniversario.ivanjunior.dev
 ```
 
 ### 4. Cache das plataformas
 
-Alterações em título, descrição ou imagem **podem demorar** para aparecer no WhatsApp por causa de cache. Ferramentas úteis:
+Alterações em título, descrição ou imagem **podem demorar** para aparecer no WhatsApp. Ferramenta útil:
 
 - [Facebook Sharing Debugger](https://developers.facebook.com/tools/debug/)
-- Às vezes é necessário limpar o cache / forçar um novo scrape
-
-### 5. Imagem publicamente acessível
-
-A imagem precisa estar disponível sem login em:
-
-```
-${VITE_SITE_URL}/og-image.jpg
-```
-
-### 6. URLs absolutas
-
-`og:url` e `og:image` **devem ser absolutas** em produção. Não use caminhos relativos nos metadados de compartilhamento.
 
 ## Estrutura do projeto
 
 ```
 src/
-  components/     # Hero, Countdown, formulário RSVP, etc.
-  services/       # Integração com Google Apps Script
-  types/          # Tipos TypeScript
-  utils/          # Helpers de data/countdown
+  pages/              # Home, Festa, Fantasia, Votacao, Admin
+  components/         # Hero, RSVP, AtmosphericBackground...
+  components/festa/   # UI do concurso
+  services/           # rsvp.service + festaApi
+  types/
+  utils/              # date + deviceId
+scripts/
+  Code.gs             # RSVP
+  FestaCode.gs        # Concurso
 docs/
   google-apps-script.md
-public/
-  og-image.jpg
-  favicon.svg
+  festa-apps-script.md
 ```
 
 ## Evento
 
-- **Data:** 29 de agosto de 2026, 20h
+- **Data:** 29 de agosto de 2026, 19:30
 - **Local:** Chácara Aconchêgo — Rua E, 185, Recreio Internacional, Ribeirão Preto
 - **Prêmio:** Melhor fantasia — R$ 300
