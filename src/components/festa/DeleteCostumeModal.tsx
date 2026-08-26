@@ -22,7 +22,7 @@ export function DeleteCostumeModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-ink p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink p-4 sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="delete-costume-title"
