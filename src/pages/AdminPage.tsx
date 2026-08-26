@@ -3,17 +3,18 @@ import { AdminControls } from '../components/festa/AdminControls'
 import { AdminGate } from '../components/festa/AdminGate'
 import { FestaLayout } from '../components/festa/FestaLayout'
 import { RankingList } from '../components/festa/RankingList'
+import { LoadingButton } from '../components/festa/LoadingButton'
 import {
+  adminLogout,
   getRanking,
   setRegistrationStatus,
   setVotingStatus,
 } from '../services/festaApi'
 import type { PartyStatus, RankingResult } from '../types/festa'
 
-/** Polling moderado — Apps Script é lento; evita spam e erros intermitentes. */
-const RANKING_POLL_MS = 20_000
+const RANKING_POLL_MS = 10_000
 
-function AdminPanel() {
+function AdminPanel({ onLogout }: { onLogout: () => void }) {
   const [status, setStatus] = useState<PartyStatus>({
     registrationOpen: false,
     votingOpen: false,
@@ -22,6 +23,7 @@ function AdminPanel() {
   const [ranking, setRanking] = useState<RankingResult | null>(null)
   const [busy, setBusy] = useState<'registration' | 'voting' | null>(null)
   const [rankingLoading, setRankingLoading] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
   const [error, setError] = useState('')
   const inFlight = useRef(false)
   const hasRanking = useRef(false)
@@ -106,6 +108,16 @@ function AdminPanel() {
     }
   }
 
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    try {
+      await adminLogout()
+      onLogout()
+    } finally {
+      setLoggingOut(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="text-center">
@@ -116,8 +128,20 @@ function AdminPanel() {
           Controle cadastro, votação e acompanhe o ranking.
         </p>
         <p className="mt-1 text-xs text-mist/50">
-          Ranking atualiza a cada 20s (somente com a aba aberta).
+          Ranking atualiza a cada 10s (somente com a aba aberta).
         </p>
+        <div className="mt-4 flex justify-center">
+          <LoadingButton
+            type="button"
+            variant="danger"
+            loading={loggingOut}
+            loadingText="Saindo..."
+            onClick={() => void handleLogout()}
+            className="!w-auto min-w-[8rem] px-6"
+          >
+            Sair
+          </LoadingButton>
+        </div>
       </div>
 
       {error ? (
@@ -143,10 +167,12 @@ function AdminPanel() {
 }
 
 export function AdminPage() {
+  const [gateKey, setGateKey] = useState(0)
+
   return (
     <FestaLayout>
-      <AdminGate>
-        <AdminPanel />
+      <AdminGate key={gateKey}>
+        <AdminPanel onLogout={() => setGateKey((k) => k + 1)} />
       </AdminGate>
     </FestaLayout>
   )

@@ -9,7 +9,8 @@ Landing page responsiva (mobile-first) para confirmação de presença, mais o h
 - React Router
 - Tailwind CSS
 - Lucide React
-- Google Apps Script (Web App) → Google Sheets
+- Supabase (PostgreSQL + Auth + RLS) — concurso de fantasias
+- Google Apps Script (Web App) → Google Sheets — somente RSVP
 - Vercel (frontend)
 
 ## Como instalar
@@ -37,16 +38,16 @@ Copy-Item .env.example .env
 ```env
 VITE_GOOGLE_SCRIPT_URL=https://script.google.com/macros/s/RSVP_ID/exec
 VITE_SITE_URL=https://aniversario.ivanjunior.dev
-VITE_APPS_SCRIPT_URL=https://script.google.com/macros/s/FESTA_ID/exec
-VITE_ADMIN_PASSWORD=sua-senha-forte
+VITE_SUPABASE_URL=https://SEU_PROJETO.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbGciOi...
 ```
 
 | Variável | Uso |
 |----------|-----|
 | `VITE_GOOGLE_SCRIPT_URL` | Web App do RSVP (confirmação de presença) |
 | `VITE_SITE_URL` | URL absoluta do site (Open Graph) |
-| `VITE_APPS_SCRIPT_URL` | Web App do concurso de fantasias |
-| `VITE_ADMIN_PASSWORD` | Senha do `/admin` (igual ao `ADMIN_SECRET` no Apps Script) |
+| `VITE_SUPABASE_URL` | URL do projeto Supabase (concurso) |
+| `VITE_SUPABASE_ANON_KEY` | Chave anon/public do Supabase (segura via RLS) |
 
 ## Como rodar
 
@@ -82,15 +83,15 @@ npm run lint     # oxlint
 
 ### Concurso de fantasias (cadastro + votação)
 
-**[docs/festa-apps-script.md](docs/festa-apps-script.md)** — script em `scripts/FestaCode.gs`
+**[docs/SUPABASE_FESTA_SETUP.md](docs/SUPABASE_FESTA_SETUP.md)** — SQL em `docs/supabase-festa-setup.sql`
 
 Resumo do concurso:
 
-1. Crie uma planilha nova e cole `scripts/FestaCode.gs`.
-2. Execute `setupSpreadsheet()`.
-3. Configure a Script Property `ADMIN_SECRET`.
-4. Implante como Web App (**Qualquer pessoa**) e copie a URL `/exec`.
-5. Preencha `VITE_APPS_SCRIPT_URL` e `VITE_ADMIN_PASSWORD`.
+1. Crie um projeto no Supabase.
+2. Execute o SQL de `docs/supabase-festa-setup.sql` no SQL Editor.
+3. Copie Project URL e anon key para o `.env`.
+4. Crie um usuário em Authentication e insira o UUID em `admin_users`.
+5. Configure as mesmas variáveis na Vercel e faça redeploy.
 
 ## Deploy na Vercel
 
@@ -100,8 +101,8 @@ Resumo do concurso:
 4. Em **Environment Variables**, adicione:
    - `VITE_GOOGLE_SCRIPT_URL`
    - `VITE_SITE_URL` (ex.: `https://aniversario.ivanjunior.dev`)
-   - `VITE_APPS_SCRIPT_URL`
-   - `VITE_ADMIN_PASSWORD`
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
 5. Faça o deploy.
 
 O arquivo `vercel.json` já redireciona rotas SPA para `index.html`.
@@ -153,15 +154,16 @@ src/
   pages/              # Home, Festa, Fantasia, Votacao, Admin
   components/         # Hero, RSVP, AtmosphericBackground...
   components/festa/   # UI do concurso
+  lib/supabase.ts     # client Supabase
   services/           # rsvp.service + festaApi
   types/
   utils/              # date + deviceId
 scripts/
-  Code.gs             # RSVP
-  FestaCode.gs        # Concurso
+  Code.gs             # RSVP (Apps Script)
 docs/
   google-apps-script.md
-  festa-apps-script.md
+  SUPABASE_FESTA_SETUP.md
+  supabase-festa-setup.sql
 ```
 
 ## Evento
