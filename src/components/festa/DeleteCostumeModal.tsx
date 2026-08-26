@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { LoadingButton } from './LoadingButton'
 
 type DeleteCostumeModalProps = {
@@ -19,7 +20,7 @@ export function DeleteCostumeModal({
 }: DeleteCostumeModalProps) {
   const votesLabel = votes === 1 ? 'voto' : 'votos'
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink p-4 sm:items-center"
       role="dialog"
@@ -67,6 +68,7 @@ export function DeleteCostumeModal({
           </LoadingButton>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

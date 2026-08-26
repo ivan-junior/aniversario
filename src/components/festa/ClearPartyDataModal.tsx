@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { LoadingButton } from './LoadingButton'
 
 type ClearPartyDataModalProps = {
@@ -15,7 +16,7 @@ export function ClearPartyDataModal({
   const [confirmation, setConfirmation] = useState('')
   const canConfirm = confirmation === 'LIMPAR'
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-ink p-4 sm:items-center"
       role="dialog"
@@ -78,6 +79,7 @@ export function ClearPartyDataModal({
           </LoadingButton>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
